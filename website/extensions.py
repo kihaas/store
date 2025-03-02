@@ -6,10 +6,10 @@ from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from flask_caching import Cache
 
-# Инициализация расширений
-db = SQLAlchemy()  # ORM для работы с базой данных
-login_manager = LoginManager()  # Управление сессиями пользователей
-jwt = JWTManager()  # Работа с JWT-токенами
-mail = Mail()  # Отправка писем
+
+db = SQLAlchemy()
+login_manager = LoginManager()
+jwt = JWTManager()
+mail = Mail()
 limiter = Limiter(key_func=get_remote_address, storage_uri="redis://localhost:6379")  # Ограничение запросов
-cache = Cache()  # Кэширование данных
+cache = Cache()

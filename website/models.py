@@ -1,23 +1,27 @@
 from datetime import datetime
-from website.extensions import db
+import uuid
+from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
-
+from website.extensions import db
 
 class User(db.Model):
     __tablename__ = 'users'
     id = db.Column(db.Integer, primary_key=True)
+    login = db.Column(db.String(50), unique=True, nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False)
-    phone = db.Column(db.String(20), unique=True, nullable=False)  # Уникальный телефон
+    phone = db.Column(db.String(20), unique=True, nullable=False)
     password_hash = db.Column(db.String(128), nullable=False)
     date_registered = db.Column(db.DateTime, default=datetime.utcnow)
     role = db.Column(db.String(20), default='user')
     referral_code = db.Column(db.String(20), unique=True, nullable=True)
     bonus_balance = db.Column(db.Float, default=0.0)
     referrer_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+
     orders = db.relationship('Order', backref='user', lazy=True, cascade='all, delete-orphan')
     cart_items = db.relationship('CartItem', backref='user', lazy=True, cascade='all, delete-orphan')
     bonus_transactions = db.relationship('BonusTransaction', backref='user', lazy=True, cascade='all, delete-orphan')
-    referrals = db.relationship('Referral', foreign_keys='Referral.referrer_id', backref='referrer', lazy=True)
+
+    referred_users = db.relationship('Referral', foreign_keys='Referral.referrer_id', backref='referring_user', lazy=True)
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
@@ -27,7 +31,24 @@ class User(db.Model):
 
     def generate_referral_code(self):
         import secrets
-        self.referral_code = secrets.token_hex(8)
+        if not self.referral_code:
+            self.referral_code = secrets.token_urlsafe(16)
+        return self.referral_code
+
+    def get_referral_link(self):
+        return f"http://127.0.0.1:5000/register?ref={self.referral_code}"
+
+
+class Referral(db.Model):
+    __tablename__ = 'referrals'
+    id = db.Column(db.Integer, primary_key=True)
+    referrer_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    referred_user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    bonus_amount = db.Column(db.Float, nullable=False)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+
+    referrer = db.relationship('User', foreign_keys=[referrer_id], backref='given_referrals')
+    referred_user = db.relationship('User', foreign_keys=[referred_user_id], backref='received_referrals')
 
 
 class Product(db.Model):
@@ -38,6 +59,7 @@ class Product(db.Model):
     description = db.Column(db.Text, nullable=True)
     stock = db.Column(db.Integer, nullable=False)
     image_url = db.Column(db.String(200), nullable=True)
+
     cart_items = db.relationship('CartItem', backref='product', lazy=True, cascade='all, delete-orphan')
 
 
@@ -55,8 +77,8 @@ class Order(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     total_amount = db.Column(db.Float, nullable=False)
     status = db.Column(db.String(20), default='pending')
-    payment_id = db.Column(db.String(50), nullable=True)  # ID платежа в ЮKassa
-    payment_link = db.Column(db.String(200), nullable=True)  # Ссылка на оплату
+    payment_id = db.Column(db.String(50), nullable=True)
+    payment_link = db.Column(db.String(200), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
 
@@ -68,11 +90,11 @@ class BonusTransaction(db.Model):
     type = db.Column(db.String(20), nullable=False)  # 'credit' или 'debit'
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
 
-
-class Referral(db.Model):
-    __tablename__ = 'referrals'
+class Log(db.Model):
+    __tablename__ = 'logs'
     id = db.Column(db.Integer, primary_key=True)
-    referrer_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    referred_user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    bonus_amount = db.Column(db.Float, nullable=False)
-    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+    admin_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)  # ID администратора
+    action = db.Column(db.String(500), nullable=False)  # Описание действия
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)  # Время действия
+
+    admin = db.relationship('User', backref='logs')  # Связь с пользователем

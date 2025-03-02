@@ -1,25 +1,18 @@
 import os
 from dotenv import load_dotenv
 
-# Загрузка переменных окружения из файла .env
 load_dotenv()
 
 class Config:
-    """
-    Основная конфигурация для приложения.
-    """
-    SECRET_KEY = os.getenv('SECRET_KEY', 'default_secret_key')  # Загружается из переменной окружения или по умолчанию
-    JWT_SECRET_KEY = os.getenv('JWT_SECRET')  # Загружается из переменной окружения
-    SQLALCHEMY_TRACK_MODIFICATIONS = False  # Отключает отслеживание изменений в базе данных для оптимизации
-    CACHE_TYPE = 'RedisCache'  # Используется Redis для кэширования
-    CACHE_REDIS_HOST = 'localhost'  # Хост для Redis
-    CACHE_REDIS_PORT = 6379  # Порт для Redis
+    SECRET_KEY = os.getenv('SECRET_KEY', 'default_secret_key')
+    JWT_SECRET_KEY = os.getenv('JWT_SECRET')
+    SQLALCHEMY_TRACK_MODIFICATIONS = False
+    CACHE_TYPE = 'RedisCache'
+    CACHE_REDIS_HOST = 'localhost'
+    CACHE_REDIS_PORT = 6379
+    WTF_CSRF_ENABLED = False
 
 class DevelopmentConfig(Config):
-    """
-    Конфигурация для разработки.
-    """
-    # Путь к базе данных в папке instance
     SQLALCHEMY_DATABASE_URI = f"sqlite:///{os.path.join(os.getcwd(), 'instance', os.getenv('DB_NAME', 'dev_db.sqlite'))}"
     MAIL_USERNAME = os.getenv('MAIL_USERNAME')  # Почтовый логин
     MAIL_PASSWORD = os.getenv('MAIL_PASSWORD')  # Почтовый пароль
@@ -28,10 +21,7 @@ class DevelopmentConfig(Config):
     MAIL_USE_TLS = True  # Использовать TLS для почты
 
 class ProductionConfig(Config):
-    """
-    Конфигурация для продакшн-окружения.
-    """
-    SQLALCHEMY_DATABASE_URI = os.getenv('DATABASE_URL')  # Строка подключения к базе данных для продакшн (например, для PostgreSQL)
+    SQLALCHEMY_DATABASE_URI = os.getenv('DATABASE_URL')
     MAIL_USERNAME = os.getenv('MAIL_USERNAME')  # Почтовый логин
     MAIL_PASSWORD = os.getenv('MAIL_PASSWORD')  # Почтовый пароль
     MAIL_SERVER = os.getenv('MAIL_SERVER', 'smtp.gmail.com')  # Почтовый сервер
@@ -39,34 +29,8 @@ class ProductionConfig(Config):
     MAIL_USE_TLS = True  # Использовать TLS для почты
 
 class TestingConfig(Config):
-    """
-    Конфигурация для тестирования.
-    """
+    #Конфигурация для тестирования
     SQLALCHEMY_DATABASE_URI = "sqlite:///:memory:"  # Используется in-memory база данных для тестов
     TESTING = True  # Включение тестового режима
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     MAIL_SUPPRESS_SEND = True  # Отключает отправку почты во время тестирования
-'''SECRET_KEY:
-
-Это ключ для защиты сессий, cookies и других данных от подделки. Этот ключ должен быть длинной случайной строкой, чтобы злоумышленники не могли его угадать. Он используется для подписания данных, хранящихся в сессиях, и защиты от атак.
-JWT_SECRET_KEY:
-
-Этот ключ используется для подписания JWT токенов. JWT токены позволяют авторизовать пользователей без необходимости поддерживать состояние на сервере (например, cookies). Он должен быть надежным и секретным, чтобы предотвратить подделку токенов.
-SQLALCHEMY_DATABASE_URI:
-
-Строка подключения к базе данных, например, для PostgreSQL, MySQL или SQLite. Через эту настройку Flask подключается к базе данных и может выполнять операции с моделями.
-SQLALCHEMY_TRACK_MODIFICATIONS:
-
-Отключает отслеживание изменений в базе данных, что может повлиять на производительность приложения. Если вы не используете сигнал SQLAlchemy для отслеживания изменений, лучше это отключить.
-MAIL_USERNAME и MAIL_PASSWORD:
-
-Эти настройки необходимы для отправки почты (например, подтверждения регистрации, восстановления пароля и других уведомлений). Почта и пароль берутся из переменных окружения, чтобы сохранить их в безопасности.
-CSRF_ENABLED:
-
-CSRF-защита защищает ваше приложение от атак подделки запросов. Это включает добавление токенов в формы и проверку их при отправке данных. Это критично для предотвращения атак, когда злоумышленники подменяют запросы от имени пользователя.
-FLASK_LIMITER_ENABLED и LOGIN_ATTEMPT_LIMIT:
-
-Flask-Limiter ограничивает количество запросов (в данном случае попыток входа). Это помогает предотвратить атаки типа "грубой силы", когда злоумышленники пытаются угадать пароль пользователя. В данном примере установлен лимит на 5 попыток входа в минуту.
-Как это работает:
-Все эти настройки загружаются из файла .env, который содержит ваши секретные и конфиденциальные данные, такие как ключи, пароли и строка подключения к базе данных.
-Эти значения предоставляют вашему приложению безопасность (через CSRF и JWT), функциональность работы с базой данных, возможность отправки почты и защиту от атак типа "грубой силы".'''

@@ -1,32 +1,35 @@
 import os
 from flask import Blueprint, jsonify, request
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from website.models import Order, CartItem, User
+from website.models import Order, CartItem
 from website.extensions import db
 import requests
 from datetime import datetime
 
-
 order_bp = Blueprint('order', __name__)
-
 
 YOOKASSA_SHOP_ID = os.getenv('YOOKASSA_SHOP_ID')
 YOOKASSA_SECRET_KEY = os.getenv('YOOKASSA_SECRET_KEY')
 YOOKASSA_API_URL = 'https://api.yookassa.ru/v3/payments'
-
 
 @order_bp.route('/create', methods=['POST'])
 @jwt_required()
 def create_order():
     user_id = get_jwt_identity()
     cart_items = CartItem.query.filter_by(user_id=user_id).all()
+
     if not cart_items:
         return jsonify({"error": "Корзина пуста"}), 400
 
     total_amount = sum(item.product.price * item.quantity for item in cart_items)
     order = Order(user_id=user_id, total_amount=total_amount)
-    db.session.add(order)
-    db.session.commit()
+
+    try:
+        db.session.add(order)
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": "Ошибка при создании заказа"}), 500
 
     return jsonify({"message": "Заказ создан", "order_id": order.id}), 201
 
